@@ -7,7 +7,8 @@ import zlib
 import random
 import threading
 import hashlib
-
+import json
+import jwt
 from rich import print
 from rich.console import Console
 from rich.tree import Tree
@@ -27,7 +28,12 @@ buffer = 1024
 def cls:
     Clear terminal screen
 """
-
+# Read config file
+config_file = "config.json"
+with open(config_file, "r") as f:
+    config_json = json.load(f)
+ip: str = config_json["ip"]
+port: int = config_json["port"]
 
 def cls():
     if os.name == 'nt':
@@ -137,12 +143,12 @@ class UI:
 """, "center"))
 
     def get_server(self):
+        global ip,port
+        server_ip = ip
+        #console.input("[b]Insert server address[/b] :laptop_computer: : ")
 
-        server_ip = console.input(
-            "[b]Insert server address[/b] :laptop_computer: : ")
-
-        server_port = int(
-            console.input("[b]Insert server port[/b] : "))
+        server_port = int(port)
+        #int(console.input("[b]Insert server port[/b] : "))
 
         # If server_ip == "local"... change server_ip to 127.0.0.1
 
@@ -166,10 +172,12 @@ class UI:
         # Encrypt password
         return hashlib.md5(password.encode()).hexdigest()
 
+
     def start(self):
         self.banner()
         ip, port = self.get_server()
         username, username_styled = self.get_username()
+        password = self.get_password()
         return ip, port, username, username_styled
 
 

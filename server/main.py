@@ -4,14 +4,21 @@ import zlib
 import time
 import json
 import hashlib
-
+import jwt 
 from threading import Thread
 from rich import print
-
+import datetime
+import random
 # Read config file
 config_file = "config.json"
 with open(config_file, "r") as f:
     config_json = json.load(f)
+
+# Read users file
+users_file = "users.json"
+with open(users_file, "r") as f:
+    users = json.load(f)
+
 
 # Vars
 clients = []
@@ -32,7 +39,7 @@ buffer: int = config_json["buffer"]
 welcome_message: str = config_json["welcome_message"]
 protected_by_password: bool = config_json["protected_by_password"]
 password: str = config_json["password"]
-
+secret: str = config_json["secret"]
 # Create socket
 server = socket.socket()
 
@@ -77,6 +84,34 @@ class API:
     def send_buffer(s, buffer: int):
         s.send(str(buffer).encode())
 
+        
+    def handle_login(data):
+        username = data.get('username')
+        password = data.get('password')
+
+        if username in users and users[username] == password:
+            # Generate JWT token
+            token = jwt.encode({
+                'username': username,
+                'exp': datetime.datetime.now() + datetime.timedelta(hours=1),
+                'r':random.getrandbits(128)}
+               , secret, algorithm='HS256')
+            return {'token': token.decode('utf-8')}
+        else:
+            return {'error': 'Invalid username or password'}
+    
+    def handle_token(token):
+        if not token:
+            return {'error': 'Token is missing'}
+
+        try:
+            data = jwt.decode(token, secret, algorithms=['HS256'])
+            return {'username': data["username"], 'message': f'Hello, {data["username"]}! This is a protected resource.'}
+        except jwt.ExpiredSignatureError:
+            return {'error': 'Token has expired'}
+        except jwt.InvalidTokenError:
+            return {'error': 'Invalid token'}
+        
     class Chat:
         def __init__(self, priv_key, pub_key) -> None:
             self.priv_key = priv_key

@@ -3,7 +3,7 @@
     "port": 8889,
     "buffer": 1024,
     "welcome_message": "[red]welcome to <chat name>[/red]",
-    "protected_by_password": true,
-    "password": "test"
-
+    "protected_by_password": false,
+    "password": "test",
+    "secret":"this_is_the_sso_secret"
 }

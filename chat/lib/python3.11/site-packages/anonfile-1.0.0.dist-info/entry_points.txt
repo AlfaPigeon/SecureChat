@@ -1,0 +1,3 @@
+[console_scripts]
+anonfile = anonfile.__init__:main
+
