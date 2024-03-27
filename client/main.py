@@ -177,7 +177,7 @@ class UI:
         self.banner()
         ip, port = self.get_server()
         username, username_styled = self.get_username()
-        password = self.get_password()
+        #password = self.get_password()
         return ip, port, username, username_styled
 
 
@@ -305,12 +305,11 @@ class Main:
                 break
 
         is_protected = s.recv(1024).decode()
-        if is_protected == "protected":
-            self.password = ui.get_password()
+        if is_protected == "protected":   
             self.send_password(self.password)
-
+        self.password = ui.get_password()
         # Send username to server and wait 0.5s
-        self.send_username(self.username)
+        self.send_login(self.username,self.password)
         time.sleep(0.5)
 
         # Get buffer from server
@@ -334,15 +333,19 @@ class Main:
         chat = Chat(self.chat_api, self.username_styled, self.username)
         chat.run()
 
-    def send_username(self, username: str):
-        s.send(username.encode())
+    def send_login(self, username: str,password: str):
+        s.send(('{"username":"'+username+'","password":"'+str(password)+'"}').encode())
         # Confirm: /exit or /accepted
         confirm = s.recv(1024).decode()
-
-        if confirm != "/accepted":
+        
+        console.print(confirm)
+        s.close()
+        if "/accepted " not in confirm:
             print("[red]ERROR[/red]: Username exist")
-            s.close()
             quit()
+        else:
+            token = confirm.split(" ")[1]
+            console.print(token)
 
     def send_password(self, password: str):
         s.send(password.encode())

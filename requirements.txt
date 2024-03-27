@@ -1,4 +1,4 @@
 rsa
 rich
 anonfile
-jwt
+pyjwt

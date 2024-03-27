@@ -88,15 +88,17 @@ class API:
     def handle_login(data):
         username = data.get('username')
         password = data.get('password')
-
+        print("here")
         if username in users and users[username] == password:
+            print("indata")
             # Generate JWT token
             token = jwt.encode({
                 'username': username,
                 'exp': datetime.datetime.now() + datetime.timedelta(hours=1),
                 'r':random.getrandbits(128)}
                , secret, algorithm='HS256')
-            return {'token': token.decode('utf-8')}
+            print("token:",token)
+            return {'token': token}
         else:
             return {'error': 'Invalid username or password'}
     
@@ -106,7 +108,7 @@ class API:
 
         try:
             data = jwt.decode(token, secret, algorithms=['HS256'])
-            return {'username': data["username"], 'message': f'Hello, {data["username"]}! This is a protected resource.'}
+            return {'username': data["username"],'r':data['r']}
         except jwt.ExpiredSignatureError:
             return {'error': 'Token has expired'}
         except jwt.InvalidTokenError:
@@ -248,29 +250,30 @@ class Chat:
             else:
                 self.client.send("no_protected".encode())
 
-            nickname = self.client.recv(buffer).decode()
+            login_data = json.loads(self.client.recv(buffer).decode())
 
-            # Check username existing
-
-            for list_nickname in nicknames:
-                # If username_exist == False
-                if not username_exist:
-                    if nickname == list_nickname:
-                        username_exist = True
-
-            # If username_exist == False
-            if not username_exist:
-                # Send message: "accepted" to client
-                self.client.send("/accepted".encode())
-                print("[[yellow]?[/yellow]] Client connected")
-
-                nicknames.append(nickname)
-                clients.append(self.client)
-
-            else:
-                # Send message: "exit" to client
+            
+            login_result = API.handle_login(login_data)
+            if "error" in login_result:
                 self.client.send("/exit".encode())
                 self.client.close()
+            else:
+                token = login_result['token']
+                self.client.send("/accepted ".encode())
+                self.client.send(token.encode())
+                nickname = login_data['username']
+                nicknames.append(nickname)
+                clients.append(self.client)
+            
+
+
+            print("===============")
+            #nickname = self.client.recv(buffer).decode()
+            #print(nickname)
+            #Check username existing
+
+            
+
         except:
             pass
         
