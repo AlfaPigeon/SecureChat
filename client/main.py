@@ -22,7 +22,7 @@ global buffer
 console = Console()
 anon = AnonFile()
 s = socket.socket()
-buffer = 1024
+buffer = 4096
 
 """
 def cls:
@@ -245,7 +245,7 @@ class Chat:
                                     print("File not found")
 
                             elif not msg_splited[0].startswith("/"):
-                                self.chat_api.send(self.username_styled + " " + msg)
+                                self.chat_api.send("{styled_username:"+self.username_styled+" ,message:" + msg+", token:"+API.token+"}")
 
                                 print("<[green][i]You[/i][/green]> " + msg)
                 except IndexError:
@@ -287,29 +287,24 @@ class Main:
         pass
 
     def connect(self):
+       
         ui = UI()    
         while True:
             try:
                 s.connect((self.ip, self.port))
+                break;
             except ConnectionRefusedError:
                 cls()
                 print("[red]ERROR[/red]: Connection refused")
-                self.ip, self.port = ui.get_server()
-                self.username, self.username_styled, = ui.get_username()
-                is_protected = s.recv(1024).decode()
-                if is_protected == "protected":
-                    self.password = ui.get_password()
-                    self.send_password(self.password)
+                
 
-            else:
-                break
-
-        is_protected = s.recv(1024).decode()
-        if is_protected == "protected":   
-            self.send_password(self.password)
+        
+        #self.username, self.username_styled, = ui.get_username()
         self.password = ui.get_password()
         # Send username to server and wait 0.5s
         self.send_login(self.username,self.password)
+        
+        console.print({"Token":API.token})
         time.sleep(0.5)
 
         # Get buffer from server
@@ -329,7 +324,8 @@ class Main:
         # Welcome screen
         cls()
         self.get_welcome_message()
-
+        
+        
         chat = Chat(self.chat_api, self.username_styled, self.username)
         chat.run()
 
@@ -337,15 +333,13 @@ class Main:
         s.send(('{"username":"'+username+'","password":"'+str(password)+'"}').encode())
         # Confirm: /exit or /accepted
         confirm = s.recv(1024).decode()
-        
-        console.print(confirm)
-        s.close()
         if "/accepted " not in confirm:
-            print("[red]ERROR[/red]: Username exist")
+            print("[red]ERROR[/red]: Login not Accepted by server")
+            s.close()
             quit()
         else:
-            token = confirm.split(" ")[1]
-            console.print(token)
+            API.token = confirm.split(" ")[1]
+            
 
     def send_password(self, password: str):
         s.send(password.encode())

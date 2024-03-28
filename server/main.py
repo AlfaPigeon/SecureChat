@@ -97,7 +97,7 @@ class API:
                 'exp': datetime.datetime.now() + datetime.timedelta(hours=1),
                 'r':random.getrandbits(128)}
                , secret, algorithm='HS256')
-            print("token:",token)
+            print("\n","User:\n",username,"\n","\nToken:\n",token,"\n")
             return {'token': token}
         else:
             return {'error': 'Invalid username or password'}
@@ -228,58 +228,42 @@ class Chat:
                 # If the length of the message is zero or content is "exit"
                 # Remove client connection
                 
-                self.send_to_clients(msg)
-
+                try:
+                    msg_data = json.loads(msg.decode("utf-8"))
+                    print(msg_data)
+                    self.send_to_clients((msg_data["styled_username"]+" "+msg_data["message"]).encode('utf-8'))
+                except Exception as e:
+                    e.with_traceback()
             except BaseException:
                 self.remove_client(self.client)
                 break
 
     def run(self):
         try:
-            username_exist = False
-            password_md5 = hashlib.md5(password.encode()).hexdigest()
-            if protected_by_password:
-                self.client.send("protected".encode())
-                user_passwd = self.client.recv(1024).decode()
-                if user_passwd == password_md5:
-                    self.client.send("/accepted".encode())
-                else:
-                    self.client.send("/exit".encode())
-                    self.client.close()
-
-            else:
-                self.client.send("no_protected".encode())
-
-            login_data = json.loads(self.client.recv(buffer).decode())
-
-            
+            login_data = json.loads(self.client.recv(buffer).decode()) 
             login_result = API.handle_login(login_data)
+
             if "error" in login_result:
                 self.client.send("/exit".encode())
                 self.client.close()
             else:
                 token = login_result['token']
-                self.client.send("/accepted ".encode())
-                self.client.send(token.encode())
+                self.client.send(("/accepted "+token).encode())
+                #self.client.send(token.encode())
                 nickname = login_data['username']
                 nicknames.append(nickname)
                 clients.append(self.client)
             
 
-
-            print("===============")
-            #nickname = self.client.recv(buffer).decode()
-            #print(nickname)
-            #Check username existing
+            
 
             
 
         except:
             pass
-        
+        time.sleep(0.5)
         try:
             API.send_buffer(self.client, buffer)
-        
         except:
             pass
         
@@ -288,19 +272,22 @@ class Chat:
             self.public_key,
             self.private_key,
             self.client)
-
+        
         self.rsa_api = API.RSA(self.public_key, self.private_key)
         self.chat_api = API.Chat(self.private_key, self.public_key)
-
+        
         send_keys.public()
         time.sleep(0.5)
+       
         send_keys.private()
         time.sleep(0.5)
-
+        
         # Encrypt welcome_message and send to client
         self.welcome_message(self.rsa_api.encrypt(welcome_message))
+        
         self.middle()
-
+        
+        
 
 class Main:
     """
