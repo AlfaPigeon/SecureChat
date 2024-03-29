@@ -227,13 +227,19 @@ class Chat:
 
                 # If the length of the message is zero or content is "exit"
                 # Remove client connection
+                decrypt_msg = rsa.decrypt(msg,self.private_key)
+                msg_data = json.loads(str(decrypt_msg.decode()))
                 
-                try:
-                    msg_data = json.loads(msg.decode("utf-8"))
-                    print(msg_data)
-                    self.send_to_clients((msg_data["styled_username"]+" "+msg_data["message"]).encode('utf-8'))
-                except Exception as e:
-                    e.with_traceback()
+
+                handled_auth = API.handle_token(msg_data["token"])
+                if "error" not in handled_auth:
+                    payload = msg_data["styled_username"]+" "+msg_data["message"]
+                    encrypt_payload = rsa.encrypt(payload.encode(),self.public_key)
+                    self.send_to_clients(encrypt_payload)
+                else:
+                    print(handled_auth)
+                    self.remove_client(self.client)
+                    break
             except BaseException:
                 self.remove_client(self.client)
                 break

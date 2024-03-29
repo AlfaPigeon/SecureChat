@@ -245,8 +245,8 @@ class Chat:
                                     print("File not found")
 
                             elif not msg_splited[0].startswith("/"):
-                                self.chat_api.send("{styled_username:"+self.username_styled+" ,message:" + msg+", token:"+API.token+"}")
-
+                                self.chat_api.send("{\"styled_username\":\""+self.username_styled+"\" ,\"message\":\"" + msg+"\", \"token\":\""+API.token+"\"}")
+                                
                                 print("<[green][i]You[/i][/green]> " + msg)
                 except IndexError:
                     pass
