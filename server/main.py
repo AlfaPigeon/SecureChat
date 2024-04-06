@@ -289,6 +289,7 @@ class Chat:
         time.sleep(0.5)
         #==> Login and SSO Token handle
         try:
+            ''''
             print("puzzle start")
             randnum = random.randbytes(16)
             self.client.send(randnum)
@@ -298,7 +299,7 @@ class Chat:
             if(temphash[len(temphash) - 5:] == "00000"):
                 print("puzzle success")
             print("puzzle end")
-
+            '''
             print("handling login")
             login_data = json.loads(rsa.decrypt(self.client.recv(buffer),self.private_key).decode()) 
             login_result = API.handle_login(login_data,client_nonce,server_nonce)
