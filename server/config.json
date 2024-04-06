@@ -1,6 +1,6 @@
 {
     "ip": "127.0.0.1",
-    "port": 8099,
+    "port": 8090,
     "buffer": 4096,
     "welcome_message": "[red]welcome to <chat name>[/red]",
     "protected_by_password": false,

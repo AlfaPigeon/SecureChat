@@ -285,21 +285,30 @@ class Chat:
 
         print("[blue]INFO[/blue]: Server nonce has been sent")
         #==============================================================
+        time.sleep(0.5)
         #==> Login and SSO Token handle
         try:
+            print("handling login")
             login_data = json.loads(rsa.decrypt(self.client.recv(buffer),self.private_key).decode()) 
             login_result = API.handle_login(login_data,client_nonce,server_nonce)
-
+            print("handled login")
             if "error" in login_result:
+                print("error in result")
                 self.client.send(rsa.encrypt("/exit".encode(),self.public_key))
+                
                 self.client.close()
             else:
+                print("no error in result")
                 token = login_result['token']
-                self.client.send((rsa.encrypt("/accepted "+token).encode(),self.public_key))
+                print("no token in result?")
+                self.client.send(self.rsa_api.encrypt("/accepted "+token))
+                print("error while sending da token?")
                 #self.client.send(token.encode())
-                nickname = login_data['username']
-                nicknames.append(nickname)
-                clients.append(self.client)
+            print("[blue]INFO[/blue]: Appending..")
+            nickname = login_data['username']
+            nicknames.append(nickname)
+            clients.append(self.client)
+            print("[blue]INFO[/blue]: Appended")
 
         except:
             pass
