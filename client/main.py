@@ -337,7 +337,6 @@ class Main:
         self.password = ui.get_password()
         # Send username to server and wait 0.5s
         self.send_login(self.username,self.password,client_nonce,server_nonce)
-        
         console.print({"Token":API.token})
         
 
@@ -366,6 +365,21 @@ class Main:
         else:
             API.token = confirm.split(" ")[1]
             
+    def send_puzzle(self):
+        temp = 0
+        temphash = ""
+        challenge = self.get_buffer(self)
+        while 1:
+            temphash = hashlib.sha256(challenge.encode() + str(temp).encode()).hexdigest()
+            #print(str(temp).encode())
+            #print(temphash[len(temphash) - 10:])
+            if(temphash[len(temphash) - 5:] == "00000"):
+                break
+            temp = temp + 1
+            #if(temp%10000 == 0):
+                #print("asd")
+        print(temphash)
+        s.send(temphash.encode())
 
     def send_password(self, password: str):
         s.send(password.encode())
