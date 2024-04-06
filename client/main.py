@@ -289,6 +289,8 @@ class Main:
     def connect(self):
        
         ui = UI()    
+
+        #Connection
         while True:
             try:
                 s.connect((self.ip, self.port))
@@ -297,16 +299,16 @@ class Main:
                 cls()
                 print("[red]ERROR[/red]: Connection refused")
                 
-
-        
-        #self.username, self.username_styled, = ui.get_username()
-        self.password = ui.get_password()
-        # Send username to server and wait 0.5s
-        self.send_login(self.username,self.password)
-        
-        console.print({"Token":API.token})
-        time.sleep(0.5)
-
+        #==> Hello
+        s.send(('{"username":"'+self.username+'","message":"Hello"}').encode())
+        confirm = s.recv(1024).decode()
+        if "/accepted" not in confirm:
+            print("[red]ERROR[/red]: Login not Accepted by server")
+            s.close()
+            quit()
+        print("[blue]INFO[/blue]: Hello message sent to server")
+        #=========
+        #==> RSA Key Exchange ========================================
         # Get buffer from server
         buffer = self.get_buffer()
 
@@ -317,9 +319,31 @@ class Main:
         # Key load
         client_key = API.Load_keys(public_key, private_key)
         self.private_key, self.public_key = client_key.load_all()
-
         # API
         self.chat_api = API.Chat(self.private_key, self.public_key)
+        time.sleep(0.5)
+        #==============================================================
+
+        #==> Hello with nonce
+        client_nonce = str(random.randint(0,sys.maxsize))
+        payload = ('{"username":"'+self.username+'","nonce":"'+client_nonce+'"}')
+        s.send(rsa.encrypt(payload.encode(),self.public_key))
+        server_nonce = rsa.decrypt(s.recv(1024),self.private_key).decode()
+        print("[blue]INFO[/blue]: Server nonce has been recieved")
+        
+        #=========   
+        
+        #self.username, self.username_styled, = ui.get_username()
+        self.password = ui.get_password()
+        # Send username to server and wait 0.5s
+        self.send_login(self.username,self.password,client_nonce,server_nonce)
+        
+        console.print({"Token":API.token})
+        
+
+
+
+
 
         # Welcome screen
         cls()
@@ -329,10 +353,12 @@ class Main:
         chat = Chat(self.chat_api, self.username_styled, self.username)
         chat.run()
 
-    def send_login(self, username: str,password: str):
-        s.send(('{"username":"'+username+'","password":"'+str(password)+'"}').encode())
+    def send_login(self, username: str,password: str,client_nonce: str, server_nonce: str):
+        
+        payload = ('{"username":"'+username+'","password":"'+str(hex(int(password,base=16)^int(client_nonce,base=16)^int(server_nonce,base=16)))+'"}').encode()
+        s.send(rsa.encrypt(payload,self.public_key))
         # Confirm: /exit or /accepted
-        confirm = s.recv(1024).decode()
+        confirm = rsa.decrypt(s.recv(1024),self.private_key).decode()
         if "/accepted " not in confirm:
             print("[red]ERROR[/red]: Login not Accepted by server")
             s.close()

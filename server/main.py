@@ -9,6 +9,7 @@ from threading import Thread
 from rich import print
 import datetime
 import random
+import sys
 # Read config file
 config_file = "config.json"
 with open(config_file, "r") as f:
@@ -85,18 +86,21 @@ class API:
         s.send(str(buffer).encode())
 
         
-    def handle_login(data):
+    def handle_login(data,client_nonce,server_nonce):
         username = data.get('username')
-        password = data.get('password')
-        print("here")
+        
+        hex_values = int(data.get('password'),base=16)^int(client_nonce,base=16)^int(server_nonce,base=16)
+        
+        
+        password = str(hex_values)
         if username in users and users[username] == password:
-            print("indata")
             # Generate JWT token
             token = jwt.encode({
                 'username': username,
                 'exp': datetime.datetime.now() + datetime.timedelta(hours=1),
                 'r':random.getrandbits(128)}
                , secret, algorithm='HS256')
+            print("[blue]INFO[/blue]: user "+username+" login")
             print("\n","User:\n",username,"\n","\nToken:\n",token,"\n")
             return {'token': token}
         else:
@@ -245,35 +249,18 @@ class Chat:
                 break
 
     def run(self):
-        try:
-            login_data = json.loads(self.client.recv(buffer).decode()) 
-            login_result = API.handle_login(login_data)
-
-            if "error" in login_result:
-                self.client.send("/exit".encode())
-                self.client.close()
-            else:
-                token = login_result['token']
-                self.client.send(("/accepted "+token).encode())
-                #self.client.send(token.encode())
-                nickname = login_data['username']
-                nicknames.append(nickname)
-                clients.append(self.client)
-            
-
-            
-
-            
-
-        except:
-            pass
-        time.sleep(0.5)
+        #==> Hello
+        hello_request = self.client.recv(buffer).decode()
+        declared_username = json.loads(hello_request)['username']
+        self.client.send(("/accepted").encode())
+        print("[blue]INFO[/blue]: Hello has been done with client")
+        #==============================================================
+        #==> RSA Key Exchange     
         try:
             API.send_buffer(self.client, buffer)
         except:
             pass
-        
-        time.sleep(0.5)
+
         send_keys = API.Send_keys(
             self.public_key,
             self.private_key,
@@ -284,9 +271,44 @@ class Chat:
         
         send_keys.public()
         time.sleep(0.5)
-       
         send_keys.private()
+        #==============================================================
+        #==> Hello With nonce
+        hello_request_msg = self.client.recv(buffer)
+        hello_request = rsa.decrypt(hello_request_msg,self.private_key).decode()
+        hello_data = json.loads(hello_request)
+        declared_username = hello_data['username']
+        client_nonce = hello_data['nonce']
+        server_nonce = str(random.randint(0,sys.maxsize))
+
+        self.client.send(rsa.encrypt(server_nonce.encode(),self.public_key))
+
+        print("[blue]INFO[/blue]: Server nonce has been sent")
+        #==============================================================
+        #==> Login and SSO Token handle
+        try:
+            login_data = json.loads(rsa.decrypt(self.client.recv(buffer),self.private_key).decode()) 
+            login_result = API.handle_login(login_data,client_nonce,server_nonce)
+
+            if "error" in login_result:
+                self.client.send(rsa.encrypt("/exit".encode(),self.public_key))
+                self.client.close()
+            else:
+                token = login_result['token']
+                self.client.send((rsa.encrypt("/accepted "+token).encode(),self.public_key))
+                #self.client.send(token.encode())
+                nickname = login_data['username']
+                nicknames.append(nickname)
+                clients.append(self.client)
+
+        except:
+            pass
+
+        #==============================================================
+
         time.sleep(0.5)
+
+    
         
         # Encrypt welcome_message and send to client
         self.welcome_message(self.rsa_api.encrypt(welcome_message))
