@@ -88,10 +88,7 @@ class API:
         
     def handle_login(data,client_nonce,server_nonce):
         username = data.get('username')
-        
         hex_values = int(data.get('password'),base=16)^int(client_nonce,base=16)^int(server_nonce,base=16)
-        
-        
         password = str(hex_values)
         if username in users and users[username] == password:
             # Generate JWT token
@@ -295,7 +292,6 @@ class Chat:
             if "error" in login_result:
                 print("error in result")
                 self.client.send(rsa.encrypt("/exit".encode(),self.public_key))
-                
                 self.client.close()
             else:
                 print("no error in result")
@@ -309,10 +305,8 @@ class Chat:
             nicknames.append(nickname)
             clients.append(self.client)
             print("[blue]INFO[/blue]: Appended")
-
         except:
             pass
-
         #==============================================================
 
         time.sleep(0.5)
